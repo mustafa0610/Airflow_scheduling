@@ -1,0 +1,40 @@
+version: '3'
+services:
+  postgres:
+    image: postgres:13
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    ports:
+      - "5433:5432"  # Host port 5433, internal port 5432 (PostgreSQL default)
+  
+  webserver:
+    image: apache/airflow:2.5.0
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow  # Correct internal port for Postgres
+      AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'false'
+    ports:
+      - "8081:8080"  # Host port 8081, internal port 8080 (Airflow default)
+    depends_on:
+      - postgres
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - C:/Users/musta/Downloads/archive:/opt/airflow/archive  # Volume mount for CSV files
+    command: webserver
+
+  scheduler:
+    image: apache/airflow:2.5.0
+    depends_on:
+      - webserver
+      - postgres
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - C:/Users/musta/Downloads/archive:/opt/airflow/archive  # Volume mount for CSV files
+    environment:
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres:5432/airflow  # Correct internal port for Postgres
+    command: scheduler
